@@ -1,0 +1,997 @@
+package com.exlibris.urm.mms.rules
+
+expander hierarchy.dsl
+expander opr.dsl
+expander droolsVariable.dsl
+
+
+import com.exlibris.repository.mms.utils.drools.*
+import com.exlibris.repository.mms.esploro.schema.*
+import com.exlibris.core.infra.common.drools.utils.*;
+import com.exlibris.esploro.model.schema.EsploroRecord;
+import org.dom4j.Document
+
+#global variable
+global EsploroRecord esploroTargetRecord
+global Document documentSourceRecord
+global Document dcRecord
+
+rule "document-type"
+#asset type must be set first so setting high priority (1000)
+priority 1000
+    when
+        exists "/record/metadata/document-export/documents/document/document-type"
+    then
+        replace "resourcetypeEsploro" with "/record/metadata/document-export/documents/document/document-type" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "document-type-ETD"
+priority 999
+    when
+        exists "/record/metadata/document-export/documents/document/document-type" AND exists "/record/metadata/document-export/documents/document/fields/field[@name='degree_level']/value"
+    then
+        replace "resourcetypeEsploro" with "/record/metadata/document-export/documents/document/document-type$$/record/metadata/document-export/documents/document/fields/field[@name='degree_level']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "document-type-article"
+priority 998
+    when
+        exists "/record/metadata/document-export/documents/document/document-type" AND exists "/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value"
+    then
+        replace "resourcetypeEsploro" with "/record/metadata/document-export/documents/document/document-type$$/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value" import source "MD_IMPORT_SOURCE_NAME"
+end 
+
+rule "document-type-external-ETD"
+priority 997
+    when
+        exists "/record/metadata/document-export/documents/document/document-type" AND exists "/record/header/setSpec"
+    then
+        replace "resourcetypeEsploro" with "/record/metadata/document-export/documents/document/document-type$$/record/header/setSpec" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "document-type-external-bachelors-ETD"
+priority 996
+    when
+        ((exists "/record/metadata/document-export/documents/document/document-type") AND (exists "/record/header/setSpec") AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='degree_level']/value"))
+    then
+        replace "resourcetypeEsploro" with "/record/metadata/document-export/documents/document/document-type$$/record/header/setSpec$$/record/metadata/document-export/documents/document/fields/field[@name='degree_level']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "document-type-conferencepaper"
+priority 995
+    when       
+        exists "/record/metadata/document-export/documents/document/document-type"
+        AND 
+        "/record/metadata/document-export/documents/document/document-type" equals "conferencepaper"
+        AND
+        (exists "/record/metadata/document-export/documents/document/fulltext-url" OR exists "/record/metadata/document-export/documents/document/native-url" OR exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value")
+        AND 
+        ("/record/metadata/document-export/documents/document/fields/field[@name='doi']/value" starts with "10.17077" OR "/record/metadata/document-export/documents/document/fields/field[@name='doi']/value" starts with "10.25820")
+    then
+        replace "resourcetypeEsploro" with value "conferencepaper$$DOI" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "title"
+priority 800
+    when
+        exists "/record/metadata/document-export/documents/document/title"
+    then
+        replace "title" with "/record/metadata/document-export/documents/document/title"
+end
+
+
+
+
+rule "author"
+priority 50
+    when
+        exists "/record/metadata/document-export/documents/document/authors/author"
+    then
+        replace "author" with "/record/metadata/document-export/documents/document/authors/author" fields "INSTITUTION:institution$$FIRST_NAME:fname$$MIDDLE_NAME:mname$$LAST_NAME:lname$$SUFFIX:suffix$$EMAIL:email"
+end
+
+rule "keywords"
+    when
+        exists "/record/metadata/document-export/documents/document/keywords/keyword"
+    then
+        copy to "keywords" with "/record/metadata/document-export/documents/document/keywords/keyword"
+end
+
+rule "discipline"
+    when
+        exists "/record/metadata/document-export/documents/document/disciplines/discipline"
+    then
+        copy to "keywords" with "/record/metadata/document-export/documents/document/disciplines/discipline"
+end
+
+rule "abstract"
+    when
+        exists "/record/metadata/document-export/documents/document/abstract"
+    then
+        replace "descriptionAbstract" with "/record/metadata/document-export/documents/document/abstract"
+end
+
+rule "articleid"
+    when
+        exists "/record/metadata/document-export/documents/document/articleid"
+    then
+        replace "identifierOther" with "/record/metadata/document-export/documents/document/articleid"
+        replace "originalRepAssetId" with "/record/metadata/document-export/documents/document/articleid"
+end
+
+rule "submission-date"
+    when
+        exists "/record/metadata/document-export/documents/document/submission-date"
+    then
+        replace "originalRepSubmissionDate" with "/record/metadata/document-export/documents/document/submission-date"
+end
+
+rule "submission-date2"
+    when
+        exists "/record/metadata/document-export/documents/document/submission-date"
+        AND
+        (exists "/record/metadata/document-export/documents/document/fulltext-url" OR exists "/record/metadata/document-export/documents/document/native-url" OR exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value")
+        AND 
+        not exists "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value"
+    then
+        replace date "dateAvailable" with "/record/metadata/document-export/documents/document/submission-date" date format "yyyy-MM-dd"         
+end
+
+rule "submission-date3"
+    when
+        exists "/record/metadata/document-export/documents/document/submission-date"
+        AND
+        (exists "/record/metadata/document-export/documents/document/fulltext-url" OR exists "/record/metadata/document-export/documents/document/native-url" OR exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value")
+        AND 
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value"
+    then
+        replace date "dateSubmitted" with "/record/metadata/document-export/documents/document/submission-date" date format "yyyy-MM-dd"         
+end
+
+rule "repository"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='repository']/value"
+    then
+        replace "originalRepName" with "/record/metadata/document-export/documents/document/fields/field[@name='repository']/value"
+end
+
+rule "fpage"
+    when
+    	exists "/record/metadata/document-export/documents/document/fpage"
+    then
+        replace "start_page" with "/record/metadata/document-export/documents/document/fpage"
+end
+
+rule "lpage"
+    when
+    	exists "/record/metadata/document-export/documents/document/lpage"
+    then
+        replace "end_page" with "/record/metadata/document-export/documents/document/lpage"
+end
+
+rule "doi"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='doi']/value"
+    then
+        replace "identifierDoi" with "/record/metadata/document-export/documents/document/fields/field[@name='doi']/value"
+end
+
+rule "language"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='language']/value"
+    then
+        replace "language" with "/record/metadata/document-export/documents/document/fields/field[@name='language']/value"
+end
+
+
+rule "edition"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='edition']/value"
+    then
+        replace "edition" with "/record/metadata/document-export/documents/document/fields/field[@name='edition']/value"
+end
+
+rule "volume"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='volume']/value"
+    then
+        replace "volume" with "/record/metadata/document-export/documents/document/fields/field[@name='volume']/value"
+end
+
+rule "peer_reviewed"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='peer_reviewed']/value"
+    then
+        replace "peerreview" with "/record/metadata/document-export/documents/document/fields/field[@name='peer_reviewed']/value"
+end
+
+rule "publication-date_other_then_conferencePoster"
+    when
+        is "conference.conferencePoster" not same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+    	exists "/record/metadata/document-export/documents/document/fields/field[@name='publication_date']/value"
+    then
+        replace "datePublished" with "/record/metadata/document-export/documents/document/fields/field[@name='publication_date']/value"
+end
+
+rule "fulltext-url"
+    when
+        exists "/record/metadata/document-export/documents/document/fulltext-url"
+    then
+        replace "linksToExtractStructureWithPath" with "/record/metadata/document-export/documents/document/fulltext-url" fields "TYPE_PATH:/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "native-url"
+    when
+        exists "/record/metadata/document-export/documents/document/native-url" AND not exists "/record/metadata/document-export/documents/document/fulltext-url"
+    then
+        replace "linksToExtractStructureWithPath" with "/record/metadata/document-export/documents/document/native-url" fields "TYPE_PATH:/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value" import source "MD_IMPORT_SOURCE_NAME"
+        
+end
+
+rule "source_fulltext_url"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value"
+    then
+        replace structure "links" with fields "linkURL:FIELD:/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value$$linkOwnership:CONSTANT:owner.institutional"
+end
+
+rule "multimedia_url"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='multimedia_url']/value"
+    then
+        replace structure "links" with fields "linkURL:FIELD:/record/metadata/document-export/documents/document/fields/field[@name='multimedia_url']/value$$linkDescription:FIELD:/record/metadata/document-export/documents/document/fields/field[@name='duration']/value$$linkOwnership:CONSTANT:owner.institutional$$linkType:CONSTANT:supplemental"
+end
+
+rule "supplemental-files"
+    when
+        exists "/record/metadata/document-export/documents/document/supplemental-files/file"
+    then
+        replace "linksToExtractStructure" with "/record/metadata/document-export/documents/document/supplemental-files/file" fields "URL:url$$DESCRIPTION:description"
+end
+
+rule "asset affiliation"
+    when
+        exists "/record/header/setSpec"
+    then
+        replace "temporary.assetAffiliation" with "/record/header/setSpec" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "asset license"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='distribution_license']/value"
+    then
+        replace "temporary.assetLicenseCode" with "/record/metadata/document-export/documents/document/fields/field[@name='distribution_license']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "embargo"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value"
+    then
+        replace embargo with "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value" date format "yyyy-MM-dd"
+        replace date "dateAvailable" with "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value" date format "yyyy-MM-dd"  
+end
+
+rule "access"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='access']/value"
+    then
+        replace "assetAccessRight" with "/record/metadata/document-export/documents/document/fields/field[@name='access']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "tpages"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='tpages']/value"
+    then
+        replace "pages" with "/record/metadata/document-export/documents/document/fields/field[@name='tpages']/value"
+end
+
+rule "comments"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='comments']/value"
+    then
+        replace "comments" with "/record/metadata/document-export/documents/document/fields/field[@name='comments']/value"
+end
+
+rule "multimedia_format"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='multimedia_format']/value"
+    then
+        replace "medium" with "/record/metadata/document-export/documents/document/fields/field[@name='multimedia_format']/value"
+end
+
+rule "rights"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='rights']/value"
+    then
+        replace "copyright" with "/record/metadata/document-export/documents/document/fields/field[@name='rights']/value"
+end
+
+rule "funding"
+    when
+ ## in order for the rule to run once then we ask about the document-type which we know that must exist and only once
+        exists "/record/metadata/document-export/documents/document/document-type"
+    then
+        replace funding with awardNumber "/record/metadata/document-export/documents/document/fields/field[@name='grant_number']/value" and funderName "/record/metadata/document-export/documents/document/fields/field[@name='funding_source']/value" or funderName "record/metadata/document-export/documents/document/fields/field[@name='funding']/value"
+end
+
+rule "publisher_all_type"
+    when
+    	exists "/record/metadata/document-export/documents/document/fields/field[@name='publisher']/value"
+    then
+        replace "publisher" with "/record/metadata/document-export/documents/document/fields/field[@name='publisher']/value"
+end
+
+rule "no_publisher_book_or_book_chapter"
+    when
+        (((is "publication.book" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR(is "publication.bookChapter" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND
+    	(not exists "/record/metadata/document-export/documents/document/fields/field[@name='publisher']/value")
+    	AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"))
+    then
+        replace "publisher" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+end
+
+rule "pmid"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='pmid']/value"
+    then
+        replace "identifierPmid" with "/record/metadata/document-export/documents/document/fields/field[@name='pmid']/value"
+end
+
+rule "illustrations"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='illustrations']/value"
+    then
+        replace "descriptionIllustrations" with "/record/metadata/document-export/documents/document/fields/field[@name='illustrations']/value"
+end
+
+
+rule "bibliographic"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='bibliographic']/value"
+    then
+        replace "descriptionBibliographic" with "/record/metadata/document-export/documents/document/fields/field[@name='bibliographic']/value"
+end
+
+rule "nlm_abbrev"
+    when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='nlm_abbrev']/value"
+    then
+        replace "nlm_abbrev" with "/record/metadata/document-export/documents/document/fields/field[@name='nlm_abbrev']/value"
+end
+
+
+
+##################### start specific asset mappings #####################
+
+
+
+
+
+####### journalArticle mappings #######
+
+rule "journalArticle_issn"
+    when
+       	(((is "publication.journalArticle" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR 
+        (is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type")) AND
+         (exists "/record/metadata/document-export/documents/document/fields/field[@name='issn']/value"))
+    then
+        replace "issn" with "/record/metadata/document-export/documents/document/fields/field[@name='issn']/value"
+end
+
+rule "journalArticle_issue"
+    when
+		(((is "publication.journalArticle" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR 
+        (is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type")) 
+        AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value"))
+    then
+        replace "issue" with "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value"
+end
+
+rule "journalArticle_issue_num"
+    when
+       	(((is "publication.journalArticle" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR 
+        (is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type")) 
+        AND (not exists "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value") AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='issnum']/value"))
+    then
+        replace "issue" with "/record/metadata/document-export/documents/document/fields/field[@name='issnum']/value"
+end
+
+rule "journalArticle_source_publication"
+    when
+       	is "publication.journalArticle" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "relation_title" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+rule "review_or_otherjournal_source_publication"
+    when
+       	(((is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type")) 
+        AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"))
+    then
+        replace "series" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+
+####### conferenceProceeding mappings #######
+
+rule "conferenceProceeding_issn"
+    when
+       	is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND exists "/record/metadata/document-export/documents/document/fields/field[@name='issn']/value"
+    then
+        replace "issn" with "/record/metadata/document-export/documents/document/fields/field[@name='issn']/value"
+end
+
+rule "conferenceProceeding_issue"
+    when
+       	is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND exists "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value"
+    then
+        replace "issue" with "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value"
+end
+
+rule "conferenceProceeding_issue_num"
+    when
+       	((is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        AND (not exists "/record/metadata/document-export/documents/document/fields/field[@name='issue']/value") AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='issnum']/value"))
+    then
+        replace "issue" with "/record/metadata/document-export/documents/document/fields/field[@name='issnum']/value"
+end
+
+rule "conferenceProceeding_source_publication"
+    when
+       	is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "relation_title" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+
+
+rule "conferenceProceeding_isbn"
+    when
+    	is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+		exists "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+    then
+        replace "isbn" with "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+end
+
+rule "conferenceProceeding_location"
+    when
+        is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+    then
+        replace "conferencelocation" with "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+end
+
+rule "conferenceProceeding_beside_presentation_volnum"
+    when
+        (((start with "conference.conference" and not with "conference.presentation" as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR (is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"))
+    then
+        replace "conferencenumber" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+##rule "conferenceProceeding_pub_citation"
+##    when
+##        is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+##        AND
+##        exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##    then
+##        replace "conferencename" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##end
+
+##rule "conferenceProceeding_pub_citation_conferencedate"
+##   when
+##        is "publication.conferenceProceeding" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+##        AND
+##        exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##    then
+##        replace "conferencedate_getYear" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##end
+
+####### conferencePresentation mappings #######
+
+rule "conferencePresentation_location"
+    when
+        is "conference.conferencePresentation" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+    then
+        replace "conferencelocation" with "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+end
+
+rule "conferencePresentation_source_publication"
+    when
+        is "conference.conferencePresentation" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "conferencename" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+##rule "conferencePresentation_pub_citation"
+##    when
+##        is "conference.conferencePresentation" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+##        AND
+##        exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##    then
+##        replace "event.eventDate_getYear" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+##end
+
+####### Presentation mappings #######
+
+rule "presentation_location"
+when
+        is "conference.presentation" same asset as "/record/metadata/document-export/documents/document/document-type" with additional "/record/header/setSpec((CONDITION::TYPE=MATCH_REGEX::VALUE1=publication:presidential-lecture-series,,ACTION::TYPE=SET_NEW_VALUE::VALUE1=presidential))" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+    then
+        replace "event.eventLocation" with "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+end
+
+rule "presentation_source_publication"
+    when
+        is "conference.presentation" same asset as "/record/metadata/document-export/documents/document/document-type" with additional "/record/header/setSpec((CONDITION::TYPE=MATCH_REGEX::VALUE1=publication:presidential-lecture-series,,ACTION::TYPE=SET_NEW_VALUE::VALUE1=presidential))" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "event.eventName" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+rule "presentation_volnum"
+	when
+		is "conference.presentation" same asset as "/record/metadata/document-export/documents/document/document-type" with additional "/record/header/setSpec((CONDITION::TYPE=MATCH_REGEX::VALUE1=publication:presidential-lecture-series,,ACTION::TYPE=SET_NEW_VALUE::VALUE1=presidential))" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+    then
+        replace "localFields.localNote2" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+
+#################
+
+####### book mappings #######
+
+rule "book_pub_citation"
+    when
+    	is "publication.book" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+    then
+        replace "publisher" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+end
+
+rule "book_isbn"
+    when
+        is "publication.book" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+    then
+        replace "identifierIsbn" with "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+end
+
+rule "book_source_publication"
+    when
+        is "publication.book" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "series" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+
+rule "book_volnum"
+    when
+        ((is "publication.book" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME") AND 
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"))
+    then
+        replace "seriesNumber" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+
+####### bookChapter mappings #######
+
+rule "bookChapter_isbn"
+    when
+    	is "publication.bookChapter" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+		exists "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+    then
+        replace "isbn" with "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+end
+
+rule "bookChapter_pub_citation"
+    when
+       	is "publication.bookChapter" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+    then
+        replace "publisher" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+end
+
+
+
+rule "bookChapter_source_publication"
+    when
+        is "publication.bookChapter" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "relation_title" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+rule "bookChapter_volnum"
+    when
+        is "publication.bookChapter" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+    then
+        replace "seriesNumber" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+
+####### conferencePoster mappings #######
+
+rule "conferencePoster_location"
+    when
+        is "conference.conferencePoster" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+    then
+        replace "conferencelocation" with "/record/metadata/document-export/documents/document/fields/field[@name='location']/value"
+end
+
+rule "conferencePoster_source_publication"
+    when
+        is "conference.conferencePoster" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "conferencename" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+
+rule "conferencePoster_publication_date"
+    when
+        is "conference.conferencePoster" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='publication_date']/value"
+    then
+        replace "datePresented" with "/record/metadata/document-export/documents/document/fields/field[@name='publication_date']/value"
+end
+
+####### dataset.dataset mappings #######
+
+rule "dataset_geolocate"
+    when
+ ## in order for the rule to run once then we ask about the document-type which we know that must exist and only once
+		is "dataset.dataset" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+        AND        exists "/record/metadata/document-export/documents/document/document-type"
+    then
+        replace geolocate with address "/record/metadata/document-export/documents/document/fields/field[@name='geolocate']/value" and latitude "/record/metadata/document-export/documents/document/fields/field[@name='latitude']/value" and longitude "/record/metadata/document-export/documents/document/fields/field[@name='longitude']/value"
+end
+
+####### ETDs mappings #######
+
+rule "etd_descriptionIllustrations"
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='illustrations']/value"
+    then
+        replace "descriptionIllustrations" with "/record/metadata/document-export/documents/document/fields/field[@name='illustrations']/value"
+end
+
+rule "etd_descriptionBibliographic"
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='bibliographic']/value"
+    then
+        replace "descriptionBibliographic" with "/record/metadata/document-export/documents/document/fields/field[@name='bibliographic']/value"
+end
+
+rule "etd_degreeName"
+        when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='degree_name']/value"
+    then
+        replace "etd.degreeName" with "/record/metadata/document-export/documents/document/fields/field[@name='degree_name']/value"
+end
+
+rule "etd_degreeDiscipline"
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/header/setSpec"
+    then
+        replace "temporary.awardingAcademicUnit" with "/record/header/setSpec" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+##	Miami	##
+##rule "etd_degreeDiscipline"
+##         when
+##      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+##      AND
+##        exists "/record/metadata/document-export/documents/document/fields/field[@name='department']/value"
+##    then
+##        replace "temporary.awardingAcademicUnit" with "/record/metadata/document-export/documents/document/fields/field[@name='department']/value" import source "MD_IMPORT_SOURCE_NAME"
+##end
+
+rule "etd_degreeProgram"
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='department']/value"
+    then
+        replace "temporary.degreeProgram" with "/record/metadata/document-export/documents/document/fields/field[@name='department']/value" import source "MD_IMPORT_SOURCE_NAME"
+end
+
+rule "etd_subtitle"
+priority 750
+    when
+    is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+    AND
+        exists "/record/metadata/document-export/documents/document/title"
+    then
+        replace "subtitleForETD" with "/record/metadata/document-export/documents/document/title"
+end
+
+rule "etd_publicabstract"
+    when
+    is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+    AND
+        exists "/record/metadata/document-export/documents/document/publicabstract"
+    then
+        replace "localFields.localNote3" with "/record/metadata/document-export/documents/document/publicabstract"
+end
+
+rule "etd_printnote"
+    when
+    is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+    AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='printnote']/value"
+    then
+        replace "pub_citation_links" with "/record/metadata/document-export/documents/document/fields/field[@name='printnote']/value"
+end
+
+
+
+rule "etd_advisor"
+priority 97
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[starts-with(@name,'advisor')]/value"
+    then
+        replace "advisor" with "/record/metadata/document-export/documents/document/fields/field[starts-with(@name,'advisor')]"
+end
+
+rule "etd_comm_mem" 
+priority 96
+         when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+      AND
+        exists "/record/metadata/document-export/documents/document/fields/field[starts-with(@name,'comm_mem')]/value"
+    then
+        replace "comm_mem" with "/record/metadata/document-export/documents/document/fields/field[starts-with(@name,'comm_mem')]"
+end
+
+rule "etd_degree_grantor"
+      when
+      is etd asset "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"
+       AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='degree_grantor']/value"
+    then
+        replace "etd.degreeGrantor" with "/record/metadata/document-export/documents/document/fields/field[@name='degree_grantor']/value"
+end
+
+#############
+
+##### conference papers ####
+
+rule "conferencePapers_source_publication"
+    when
+    	exists "/record/metadata/document-export/documents/document/document-type"
+        AND 
+        "/record/metadata/document-export/documents/document/document-type" equals "conferencepaper"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+        AND
+        (exists "/record/metadata/document-export/documents/document/fulltext-url" OR exists "/record/metadata/document-export/documents/document/native-url" OR exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value")
+        AND 
+        ("/record/metadata/document-export/documents/document/fields/field[@name='doi']/value" starts with "10.17077" OR "/record/metadata/document-export/documents/document/fields/field[@name='doi']/value" starts with "10.25820")
+    then
+        replace "conferencename" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+#####################
+
+
+####### "Publications: report" and "Posted content: Working paper"  mappings #######
+
+rule "report_or_working_paper_source_publication"
+    when
+       (((is "publication.report" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME") 
+       	OR 
+       	(is "postedContent.workingPaper" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"))
+    then
+        replace "relation_title" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+
+rule "report_or_working_paper_volnum"
+    when
+       	(((is "publication.report" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME") 
+       	OR 
+       	(is "postedContent.workingPaper" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND 
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"))
+    then
+        replace "volume" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+rule "no_publisher_report_or_working_paper"
+    when
+       (((is "publication.report" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME") 
+       	OR 
+       	(is "postedContent.workingPaper" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND
+    	((not exists "/record/metadata/document-export/documents/document/fields/field[@name='publisher']/value")
+    	AND (exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value")))
+    then
+        replace "publisher" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+end
+
+rule "report_or_working_paper_isbn"
+    when
+         (((is "publication.report" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME") 
+       	OR 
+       	(is "postedContent.workingPaper" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME"))
+        AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"))
+    then
+        replace "identifierIsbn" with "/record/metadata/document-export/documents/document/fields/field[@name='isbn']/value"
+end
+
+##################
+
+rule "embargoopen"
+   when
+        (((exists "/record/metadata/document-export/documents/document/native-url") OR (exists "/record/metadata/document-export/documents/document/fulltext-url"))
+        AND  (not exists "/record/metadata/document-export/documents/document/fields/field[@name='access']/value") AND (not exists "/record/metadata/document-export/documents/document/fields/field[@name='embargo_date']/value"))
+    then
+        replace embargo with "open"
+end
+
+rule "author_contributor_organization"
+priority 49
+    when
+        exists "/record/metadata/document-export/documents/document/authors/author"
+    then
+        replace "organization_author" with "/record/metadata/document-export/documents/document/authors/author" fields "ORGANIZATION:organization"
+end
+
+
+rule "article_review_otherjournal_pub_citation"
+ when
+      (((is "article" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+      	(is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type"))
+               AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value") AND ((exists "/record/metadata/document-export/documents/document/fulltext-url") OR (exists "/record/metadata/document-export/documents/document/native-url") OR
+         (exists "/record/metadata/document-export/documents/document/fields/field[@name='source_fulltext_url']/value")))
+    then
+        replace "pub_citation_links" with "/record/metadata/document-export/documents/document/fields/field[@name='pub_citation']/value"
+end
+
+rule "original_rep_format_date"
+priority 994
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='publication_date_date_format']/value"
+    then
+        replace "originalRepository.formatDate" with "/record/metadata/document-export/documents/document/fields/field[@name='publication_date_date_format']/value"
+end
+
+rule "publish_place"
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='city']/value"
+    then
+        replace "publicationPlace" with "/record/metadata/document-export/documents/document/fields/field[@name='city']/value"
+end
+
+rule "coverpage_url"
+	when
+        exists "/record/metadata/document-export/documents/document/coverpage-url"
+    then
+        replace "originalRepository.coverpageUrl" with "/record/metadata/document-export/documents/document/coverpage-url"
+end
+
+rule "journalArticle_volnum"
+    when
+       	(((is "publication.journalArticle" same asset as "/record/metadata/document-export/documents/document/document-type" with import source "MD_IMPORT_SOURCE_NAME")
+        OR (is "postedContent.preprint" same asset as "/record/metadata/document-export/documents/document/document-type" with additional "/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value" with import source "MD_IMPORT_SOURCE_NAME")) AND 
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"))
+    then
+        replace "volume" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+rule "size"
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='size']/value"
+    then
+        replace "size" with "/record/metadata/document-export/documents/document/fields/field[@name='size']/value"
+end
+
+rule "specific_type"
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='specific_type']/value"
+    then
+        replace "resourceSubtype" with "/record/metadata/document-export/documents/document/fields/field[@name='specific_type']/value"
+end
+
+rule "notes"
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='notes']/value"
+    then
+        replace "localFields.localNote1" with "/record/metadata/document-export/documents/document/fields/field[@name='notes']/value"
+end
+
+rule "provenance"
+	when
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='provenance']/value"
+    then
+        replace "provenance" with "/record/metadata/document-export/documents/document/fields/field[@name='provenance']/value"
+end
+
+rule "review_otherjournal_volnum"
+	when
+      	(((is "review" same as "/record/metadata/document-export/documents/document/document-type")
+        OR
+        (is "otherjournal" same as "/record/metadata/document-export/documents/document/document-type"))
+         AND
+        (exists "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"))
+    then
+        replace "volume" with "/record/metadata/document-export/documents/document/fields/field[@name='volnum']/value"
+end
+
+
+######prePrint############
+rule "prePrint_source_publication"
+    when
+        is "postedContent.preprint" same asset as "/record/metadata/document-export/documents/document/document-type" with additional "/record/metadata/document-export/documents/document/fields/field[@name='journal_article_version']/value" with import source "MD_IMPORT_SOURCE_NAME"
+        AND
+        exists "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+    then
+        replace "relation_title" with "/record/metadata/document-export/documents/document/fields/field[@name='source_publication']/value"
+end
+#############################
+
+##############
