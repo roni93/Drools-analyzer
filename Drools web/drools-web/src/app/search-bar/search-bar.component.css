@@ -1,0 +1,22 @@
+.center {
+  margin: auto;
+  width: 60%;
+  border: 3px solid #73AD21;
+  padding: 10px;
+}
+
+#btn {
+  display: block;
+  max-width: 300px;
+  margin: auto;
+}
+
+#outer {
+  display: inline-block;
+  text-align: center;
+  }
+
+  #outer {
+  display: inline-block;
+  text-align: center;
+  }

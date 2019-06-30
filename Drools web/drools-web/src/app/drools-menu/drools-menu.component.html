@@ -1,0 +1,49 @@
+
+<br><br><br>
+
+<div id="outer">
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getAll()" [routerLink]="['list']">
+      All <span class="badge badge-light"> {{ get_number_of_All()}}</span>
+    </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getETDs()" [routerLink]="['list']">
+    ETD <span class="badge badge-light"> {{ get_number_of_ETD()}}</span>
+  </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getJournal()" [routerLink]="['list']">
+    Journal Article <span class="badge badge-light"> {{ get_number_of_journal()}}</span>
+  </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getPaper()" [routerLink]="['list']">
+    Conference Paper <span class="badge badge-light"> {{ get_number_of_paper()}}</span>
+  </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getBook()" [routerLink]="['list']">
+    Book <span class="badge badge-light"> {{ get_number_of_book()}}</span>
+  </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getBookChapter()" [routerLink]="['list']">
+    Book Chapter <span class="badge badge-light"> {{ get_number_of_book_chapter()}}</span>
+  </button>
+
+  <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getConferenceProceeding()" [routerLink]="['list']">
+    Conference Proceeding <span class="badge badge-light"> {{ get_number_of_conference_proceeding()}}</span>
+  </button>
+
+<br>
+</div>
+
+<div id="outer">
+    <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getConferencePresentation()" [routerLink]="['list']">
+        Conference Presentation <span class="badge badge-light"> {{ get_number_of_conference_presentation()}}</span>
+      </button>
+
+      <button type="button" class="btn btn-primary btn-lg" id="btn" (click)="getPresentation()" [routerLink]="['list']">
+          Presentation <span class="badge badge-light"> {{ get_number_of_presentation()}}</span>
+        </button>
+
+      <br>
+  <button type="button" id="btn" class="btn btn-dark"  [routerLink]="['']">Back</button>
+
+</div>
+

@@ -1,0 +1,31 @@
+.center {
+  margin: auto;
+  width: 60%;
+  border: 3px solid #73AD21;
+  padding: 10px;
+}
+.btn-xl {
+  padding: 10px 20px;
+  font-size: 20px;
+  border-radius: 10px;
+}
+#outer {
+  display: inline-block;
+  text-align: center;
+  }
+#btn {
+  display: inline-block;
+  max-width: 300px;
+  margin: 10px;
+  text-align: center
+}
+
+#outer
+{
+    width:100%;
+    text-align: center;
+}
+.inner
+{
+    display: inline-block;
+}

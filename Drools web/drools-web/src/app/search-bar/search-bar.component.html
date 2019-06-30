@@ -1,0 +1,18 @@
+<div id="outer">
+    <div class="row">
+
+        <div class="col-lg-6">
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search for..." [(ngModel)]="searchValue">
+            <span class="input-group-btn">
+              <button class="btn btn-default" type="button" (click)="search()">Go!</button>
+            </span>
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="button" (click)="clear()">Clear</button>
+              </span>
+              <button type="button" id="btn" class="btn btn-primary"  [routerLink]="['..']">Back</button>
+
+          </div><!-- /input-group -->
+        </div><!-- /.col-lg-6 -->
+      </div><!-- /.row -->
+      </div>

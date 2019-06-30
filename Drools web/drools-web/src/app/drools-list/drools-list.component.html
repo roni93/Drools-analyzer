@@ -1,0 +1,30 @@
+<br>
+<app-search-bar></app-search-bar>
+<br>
+<div fxLayout="row">
+  <div *ngFor="let drool of getListDrools()">
+
+      <div class="container">
+          <div class="panel-group">
+
+
+            <div class="panel panel-primary">
+              <div class="panel-heading">{{ drool.rule_name }}</div>
+
+              <div style="margin-right: 50x;" *ngIf="drool.priority.length >0"> <b >Priority:</b></div>
+              <div class="panel-body" *ngIf="drool.priority.length >0">{{ drool.priority }}</div>
+              <div style="margin-right: 50x;"> <b >When:</b></div>
+              <div class="panel-body">{{ drool.condition }}</div>
+              <div style="margin-right: 50x;"> <b >Then:</b></div>
+              <div class="panel-body">{{ drool.then }}</div>
+              
+            </div>
+
+
+        </div>
+      </div>
+
+
+    </div>
+<button type="button" id="btn" class="btn btn-primary"  [routerLink]="['..']">Back</button>
+</div>
